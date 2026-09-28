@@ -30,6 +30,21 @@ def run_plugin(
         await engine.run_plugin(name, chaskywasi_handler=mock_chaskywasi_handler)
 
     asyncio.run(_run())
+@app.command("run-all")
+def run_all_installed_plugins():
+    """Ejecuta TODOS los plugins detectados en paralelo con salida secuencial."""
+    async def _run():
+        # Tomamos todos los nombres indexados dinámicamente por Entry Points
+        todos_los_plugins = engine.list_available_plugins()
+        
+        async def mock_chaskywasi_handler(doc):
+            # Simulamos un proceso secuencial lento (ej. guardar en Base de Datos)
+            await asyncio.sleep(1) 
+            logger.info(f" -> [CHASKIWASI] Procesado en orden: {doc.id_externo}")
+
+        await engine.run_plugins_parallel(todos_los_plugins, chaskywasi_handler=mock_chaskywasi_handler)
+
+    asyncio.run(_run())
 
 if __name__ == "__main__":
     app()
