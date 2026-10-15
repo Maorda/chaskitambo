@@ -21,24 +21,47 @@ def list_plugins():
 
 @app.command("run")
 def run_plugin(
-    name: str = typer.Argument(..., help="Nombre del plugin a ejecutar (ej. remaju, sunarp)")
+    name: str = typer.Argument(
+        ...,
+        help="Nombre del plugin de raspado (ej. remaju, sunarp)",
+    ),
+    local: bool = typer.Option(
+        False,
+        "--local",
+        help="Activa el modo de pruebas locales del plugin, si lo admite.",
+    ),
 ):
-    """Ejecuta un plugin de raspado de forma autónoma utilizando la infraestructura paralela."""
+    """Ejecuta un plugin de raspado de forma autónoma."""
+
     async def _run():
         async def mock_chaskywasi_handler(doc):
-            logger.info(f" -> [CHASKIWASI] Recibido documento con ID: {doc.id_externo} desde fuente '{doc.fuente}'")
-            
-        # CORREGIDO: Llamamos a 'run_plugins_parallel' envolviendo el nombre en una lista [name]
-        await engine.run_plugins_parallel([name], chaskywasi_handler=mock_chaskywasi_handler)
+            logger.info(
+                f" -> [CHASKIWASI] Recibido documento con ID: "
+                f"{doc.id_externo} desde fuente '{doc.fuente}'"
+            )
 
-    # Forzar la política Proactor requerida por Playwright en sistemas Windows
+        plugin_kwargs = {}
+
+        if local:
+            plugin_kwargs[name] = {"modo_local": True}
+
+        await engine.run_plugins_parallel(
+            [name],
+            chaskywasi_handler=mock_chaskywasi_handler,
+            plugin_kwargs=plugin_kwargs,
+        )
+
     if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        asyncio.set_event_loop_policy(
+            asyncio.WindowsProactorEventLoopPolicy()
+        )
 
     try:
         asyncio.run(_run())
     except KeyboardInterrupt:
-        logger.warning(" -> [CLI] Ejecución interrumpida manualmente por el usuario.")
+        logger.warning(
+            " -> [CLI] Ejecución interrumpida manualmente por el usuario."
+        )
 
 @app.command("run-all")
 def run_all_installed_plugins():
